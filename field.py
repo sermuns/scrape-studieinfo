@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pyperclip
 
 
 def get_course_main_field(course_code) -> str:
@@ -12,8 +13,8 @@ def get_course_main_field(course_code) -> str:
     if response.status_code != 200:
         return f"Failed to fetch data for {course_code}. HTTP Status: {response.status_code}"
 
-    soup = BeautifulSoup(response.text, 'html.parser')
-    overview_section = soup.select('section.overview-content')[0]
+    soup = BeautifulSoup(response.text, "html.parser")
+    overview_section = soup.select("section.overview-content")[0]
 
     main_field = overview_section.contents[2].text.strip()
 
@@ -27,12 +28,13 @@ if len(sys.argv) < 2:
     print(f"Usage: {sys.argv[0]} <course_code[s]>")
     sys.exit(1)
 
-course_codes = sys.argv[1].split('\n')
+course_codes = sys.argv[1].split("\n")
 
 results = []
 with ThreadPoolExecutor() as executor:
-    future_to_code = {executor.submit(
-        get_course_main_field, code): code for code in course_codes}
+    future_to_code = {
+        executor.submit(get_course_main_field, code): code for code in course_codes
+    }
 
     for future in as_completed(future_to_code):
         code = future_to_code[future]
@@ -45,5 +47,6 @@ with ThreadPoolExecutor() as executor:
 # Sort results by the original order of course codes
 results.sort(key=lambda x: course_codes.index(x[0]))
 
-for _, result in results:
-    print(result)
+result = "\n".join(result for _, result in results)
+pyperclip.copy(result)
+print("In clipboard..")
